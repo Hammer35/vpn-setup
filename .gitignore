@@ -1,0 +1,8 @@
+*.pem
+*.key
+*.db
+*.log
+.acme.sh/
+cert/
+config.json
+.env
