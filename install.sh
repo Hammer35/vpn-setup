@@ -4,7 +4,7 @@
 # Совместимость: Ubuntu 22.04 / 24.04
 # =============================================================
 
-set -euo pipefail
+set -e
 
 # --- Цвета для вывода ---
 RED='\033[0;31m'
@@ -71,10 +71,20 @@ echo -e "${YELLOW}  ЭТАП 3/6 — Генерация ключей Reality${NC
 echo "================================================"
 # Reality — современный протокол маскировки, сложнее заблокировать чем обычный VPN
 info "Генерируем уникальную пару ключей Reality (приватный + публичный)..."
-XRAY_BIN="/usr/local/x-ui/bin/xray-linux-amd64"
-KEY_OUTPUT=$($XRAY_BIN x25519 2>/dev/null)
-PRIVATE_KEY=$(echo "$KEY_OUTPUT" | grep "Private key:" | awk '{print $3}')
-PUBLIC_KEY=$(echo "$KEY_OUTPUT"  | grep "Public key:"  | awk '{print $3}')
+
+# Ищем xray бинарник — путь может отличаться в зависимости от версии x-ui
+XRAY_BIN=$(find /usr/local/x-ui/bin -name "xray-linux-*" 2>/dev/null | head -1)
+[[ -z "$XRAY_BIN" ]] && XRAY_BIN=$(find /usr/local/x-ui -name "xray*" -type f 2>/dev/null | head -1)
+[[ -z "$XRAY_BIN" ]] && err "Не нашёл xray бинарник. Убедись что 3x-ui установился корректно."
+
+KEY_OUTPUT=$("$XRAY_BIN" x25519 2>/dev/null) || KEY_OUTPUT=""
+PRIVATE_KEY=$(echo "$KEY_OUTPUT" | grep "Private key:" | awk '{print $3}' || true)
+PUBLIC_KEY=$(echo  "$KEY_OUTPUT" | grep "Public key:"  | awk '{print $3}' || true)
+
+if [[ -z "$PRIVATE_KEY" || -z "$PUBLIC_KEY" ]]; then
+    err "Не удалось сгенерировать Reality ключи. Бинарник: $XRAY_BIN\nВывод: $KEY_OUTPUT"
+fi
+
 ok "Ключи сгенерированы"
 
 echo ""
